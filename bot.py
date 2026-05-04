@@ -234,7 +234,13 @@ def handle_tiktok(message):
                 music_title = music_info.get('title', 'Original Sound')
                 music_author = music_info.get('author', 'Unknown Artist')
                 
-                encoded_query = urllib.parse.quote(f"{music_title} {music_author}")
+                # إزالة الكلمات الزائدة من الاستعلام للبحث عن الأغنية الأصلية بشكل أكثر دقة
+                clean_query = f"{music_title} {music_author}"
+                unwanted_words = ["speed up", "sped up", "remix", "slowed", "slowed + reverb", "bass boosted"]
+                for word in unwanted_words:
+                    clean_query = clean_query.replace(word, "").strip()
+                
+                encoded_query = urllib.parse.quote(clean_query)
                 youtube_link = f"https://www.youtube.com/results?search_query={encoded_query}"
                 spotify_link = f"https://open.spotify.com/search/{encoded_query}"
 

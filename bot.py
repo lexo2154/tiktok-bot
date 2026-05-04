@@ -108,12 +108,12 @@ def handle_tiktok(message):
                 else:
                     tags_text = "#TikTok"
 
-                # بناء الرسالة باللغة الإنجليزية
+                # بناء الرسالة باللغة الإنجليزية مع رابط لصاحب الحساب
                 stats_message = (
                     f"🎬 <b>VIDEO • ANALYTICS</b>\n"
                     f"• {now}\n\n"
                     f"💬 <code>{title[:60]}...</code>\n"
-                    f"👤 Author: <b>{author_name} (@{author_unique_id})</b>\n"
+                    f'👤 Author: <a href="https://www.tiktok.com/@{author_unique_id}">{author_name} (@{author_unique_id})</a>\n'
                     f"📅 Published: <b>{publish_date}</b>\n"
                     f"🎵 <b>Sound</b> • {data.get('duration', 0)}s\n\n"
                     f"📊 <b>Statistics</b>\n"

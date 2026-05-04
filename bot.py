@@ -34,6 +34,7 @@ COUNTRY_NAMES = {
     'SY': 'Syria', 'LB': 'Lebanon', 'PS': 'Palestine', 'YE': 'Yemen'
 }
 
+# النصوص المخصصة لكل لغة
 LANGUAGES = {
     'en': {
         'welcome': (
@@ -125,7 +126,7 @@ LANGUAGES = {
 }
 
 def t(chat_id, key):
-    lang = user_languages.get(chat_id, 'en')
+    lang = user_languages.get(chat_id, 'en') # الافتراضي هو الإنجليزية
     return LANGUAGES[lang].get(key, LANGUAGES['en'][key])
 
 def get_country_full_name(code):
@@ -136,11 +137,20 @@ def get_flag_emoji(country_code):
         return "📍"
     return "".join(chr(ord(c.upper()) + 127397) for c in country_code)
 
-# دالة لجلب الاسم الأصلي للأغنية بالاعتماد على قاعدة بيانات خارجية (iTunes API)
-def get_original_track_name(music_title, music_author):
+def get_original_track_name(music_title, music_author, video_title):
+    # تحديد الاستعلام الأساسي بناءً على إذا كان الصوت الأصلي لتيك توك
+    if "Original Sound" in music_title or "الصوت الأصلي" in music_title:
+        query = video_title
+    else:
+        query = f"{music_title} - {music_author}"
+        
+    # إزالة الكلمات الزائدة
+    unwanted_words = ["speed up", "sped up", "remix", "slowed", "slowed + reverb", "bass boosted", "original sound", "الصوت الأصلي"]
+    for word in unwanted_words:
+        query = query.replace(word, "").strip()
+        
     try:
-        # البحث بدمج اسم الأغنية والمغني
-        query = f"{music_title} {music_author}"
+        # البحث في قاعدة بيانات أبل للموسيقى
         url = f"https://itunes.apple.com/search?term={urllib.parse.quote(query)}&limit=1&media=music"
         response = requests.get(url, timeout=5).json()
         
@@ -150,8 +160,9 @@ def get_original_track_name(music_title, music_author):
             artist_name = result.get('artistName', music_author)
             return f"{track_name} - {artist_name}"
     except Exception as e:
-        pass # في حال فشل الاتصال، استخدم الاسم القديم كخطة بديلة
-    return f"{music_title} - {music_author}"
+        pass 
+        
+    return query
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -172,7 +183,7 @@ def send_language_menu(message):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('lang_'))
 def handle_language_change(call):
     chat_id = call.message.chat.id
-    lang = call.data.split('_')[1]
+    lang = call.data.split('_')[1] # استخراج كود اللغة
     user_languages[chat_id] = lang
     
     bot.answer_callback_query(call.id, t(chat_id, 'lang_changed'))
@@ -188,6 +199,7 @@ def handle_tiktok(message):
     chat_id = message.chat.id
     user_text = message.text
     
+    # دعم الروابط العادية والمختصرة من التطبيق
     if 'tiktok.com' in user_text or 'vm.tiktok.com' in user_text or 'vt.tiktok.com' in user_text:
         wait_msg = bot.reply_to(message, t(chat_id, 'analyzing'))
         
@@ -251,18 +263,11 @@ def handle_tiktok(message):
                 music_title = music_info.get('title', 'Original Sound')
                 music_author = music_info.get('author', 'Unknown Artist')
                 
-                # إزالة الكلمات الزائدة من الاستعلام
-                clean_query = f"{music_title} {music_author}"
-                unwanted_words = ["speed up", "sped up", "remix", "slowed", "slowed + reverb", "bass boosted"]
-                for word in unwanted_words:
-                    clean_query = clean_query.replace(word, "").strip()
-                
-                # استخدام قاعدة البيانات لتصحيح اسم الأغنية والحصول على النسخة الأصلية
-                official_query = get_original_track_name(music_title, music_author)
+                # المعالجة الذكية لاسم الأغنية
+                official_query = get_original_track_name(music_title, music_author, title)
                 
                 encoded_query = urllib.parse.quote(official_query)
                 youtube_link = f"https://www.youtube.com/results?search_query={encoded_query}"
-                # يمكنك تعديل رابط سبوتيفاي إذا كان لديك رابط بحث مباشر
                 spotify_link = f"https://open.spotify.com/search/{encoded_query}"
 
                 stats_message = (

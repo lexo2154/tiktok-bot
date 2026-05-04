@@ -138,39 +138,74 @@ def get_flag_emoji(country_code):
     return "".join(chr(ord(c.upper()) + 127397) for c in country_code)
 
 def get_original_track_name(music_title, music_author, video_title):
-    music_title_lower = music_title.lower()
-    # التحقق مما إذا كان الصوت مجرد "صوت أصلي"
-    if "original sound" in music_title_lower or "الصوت الأصلي" in music_title_lower:
-        # استخراج أول سطر من عنوان الفيديو
-        query = video_title.split('\n')[0].strip()
-        # إزالة الهاشتاجات
-        query = " ".join([word for word in query.split() if not word.startswith('#')])
-    else:
-        query = f"{music_title} - {music_author}"
-        
-    # إزالة الكلمات الزائدة
-    unwanted_words = [
-        "speed up", "sped up", "remix", "slowed", "slowed + reverb", 
-        "bass boosted", "original sound", "الصوت الأصلي", "|", "🖤", "✨", "🔥"
+    # 1. التنظيف الأساسي
+    m_title = str(music_title).strip()
+    m_author = str(music_author).strip()
+    v_title = str(video_title).strip()
+
+    # 2. التحقق من الكلمات الدلالية للصوت المخصص (التي تسبب المشاكل)
+    custom_keywords = [
+        "original sound", "الصوت الأصلي", "son original", "sonido original", 
+        "suono originale", "som original", "originalton", "موسيقى أصلية"
     ]
-    for word in unwanted_words:
-        query = query.replace(word, "").strip()
+    
+    is_custom_sound = False
+    
+    # فلترة صارمة: إذا كان العنوان فارغاً، أو يحتوي على كلمات مخصصة، أو يبدأ بشرطة، أو يطابق اسم الناشر
+    if not m_title or any(kw in m_title.lower() for kw in custom_keywords):
+        is_custom_sound = True
+    elif m_title.startswith('-') or m_title.lower() == m_author.lower() or len(m_title) < 2:
+        is_custom_sound = True
+
+    # 3. بناء نص البحث بناءً على نوع الصوت
+    if is_custom_sound:
+        # محاولة استخراج اسم الأغنية من عنوان الفيديو وتجاهل الهاشتاجات
+        clean_v_title = v_title.split('\n')[0] 
+        clean_v_title = " ".join([word for word in clean_v_title.split() if not word.startswith('#')]).strip()
         
+        if len(clean_v_title) > 2:
+            search_query = clean_v_title
+            fallback_display = clean_v_title
+        else:
+            search_query = ""
+            fallback_display = "Original Sound"
+    else:
+        search_query = f"{m_title} {m_author}".strip()
+        fallback_display = f"{m_title} - {m_author}".strip()
+
+    # 4. إذا لم نجد أي نص للبحث
+    if not search_query:
+        return "Original Sound"
+
+    # 5. تنظيف الاستعلام من الكلمات التي قد تمنع نتائج iTunes
+    unwanted_words = ["speed up", "sped up", "remix", "slowed", "bass boosted", "reverb"]
+    clean_search_query = search_query.lower()
+    for w in unwanted_words:
+        clean_search_query = clean_search_query.replace(w, "").strip()
+
+    # 6. محاولة البحث في قاعدة بيانات أبل
     try:
-        # البحث في قاعدة بيانات أبل للموسيقى
-        url = f"https://itunes.apple.com/search?term={urllib.parse.quote(query)}&limit=1&media=music"
+        url = f"https://itunes.apple.com/search?term={urllib.parse.quote(clean_search_query)}&limit=1&media=music"
         response = requests.get(url, timeout=5).json()
         
         if response.get('resultCount', 0) > 0:
             result = response['results'][0]
-            track_name = result.get('trackName', '')
-            artist_name = result.get('artistName', '')
-            if track_name and artist_name:
-                return f"{track_name} - {artist_name}"
-    except Exception as e:
+            t_name = result.get('trackName', '')
+            a_name = result.get('artistName', '')
+            if t_name and a_name:
+                return f"{t_name} - {a_name}"
+    except Exception:
         pass 
         
-    return query
+    # 7. التنسيق النهائي (حائط الصد الأخير لتنظيف الأسماء المزعجة)
+    if fallback_display.startswith('-'):
+        fallback_display = fallback_display.lstrip('- ').strip()
+        
+    # إذا كانت النتيجة لا تزال تحتوي على أسماء حسابات مع شرطة، نقوم بإخفائها
+    if " - " in fallback_display and is_custom_sound:
+         return "Original Sound"
+         
+    return fallback_display if fallback_display else "Original Sound"
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -191,7 +226,7 @@ def send_language_menu(message):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('lang_'))
 def handle_language_change(call):
     chat_id = call.message.chat.id
-    lang = call.data.split('_')[1] # استخراج كود اللغة
+    lang = call.data.split('_')[1] 
     user_languages[chat_id] = lang
     
     bot.answer_callback_query(call.id, t(chat_id, 'lang_changed'))
@@ -207,7 +242,6 @@ def handle_tiktok(message):
     chat_id = message.chat.id
     user_text = message.text
     
-    # دعم الروابط العادية والمختصرة من التطبيق
     if 'tiktok.com' in user_text or 'vm.tiktok.com' in user_text or 'vt.tiktok.com' in user_text:
         wait_msg = bot.reply_to(message, t(chat_id, 'analyzing'))
         
@@ -219,7 +253,6 @@ def handle_tiktok(message):
                 data = res['data']
                 video_id = data.get('id')
                 
-                # استخراج بيانات الحظر
                 is_private = data.get('private_item', False)
                 is_ad = data.get('is_ad', False)
                 if is_private or is_ad:
@@ -268,10 +301,10 @@ def handle_tiktok(message):
                     tags_text = "#TikTok"
 
                 music_info = data.get('music_info', {})
-                music_title = music_info.get('title', 'Original Sound')
-                music_author = music_info.get('author', 'Unknown Artist')
+                music_title = music_info.get('title', '')
+                music_author = music_info.get('author', '')
                 
-                # المعالجة الذكية لاسم الأغنية
+                # استخدام الدالة الدقيقة لمعالجة الأغنية
                 official_query = get_original_track_name(music_title, music_author, title)
                 
                 encoded_query = urllib.parse.quote(official_query)
@@ -309,7 +342,7 @@ def handle_tiktok(message):
                     f"VQ Score | 0</blockquote>\n\n"
                     f"📝 <b>{t(chat_id, 'tags')}</b>\n"
                     f"<blockquote>{tags_text}</blockquote>\n\n"
-                    f'⚡ <b>Created by <a href="https://t.me/lexo_20">𝐋𝐞_𝐱𝐨</a></b>'
+                    f'⚡ <b>Created by 𝐋𝐞_𝐱𝐨 (@lexo_20)</b>'
                 )
                 
                 markup = InlineKeyboardMarkup()

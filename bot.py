@@ -81,7 +81,11 @@ def handle_tiktok(message):
                 region_code = data.get('region', 'UN')
                 country_name = get_country_full_name(region_code)
                 flag = get_flag_emoji(region_code)
-                now = datetime.datetime.now().strftime('%Y, %H:%M:%S')
+                
+                # تعديل الوقت ليطابق التوقيت المحلي (مثلاً إضافة ساعة واحدة لتوقيت UTC+1)
+                # ملاحظة: يمكنك تغيير hours إلى القيمة التي تتناسب مع منطقتك الزمنية
+                local_time = datetime.datetime.now() + datetime.timedelta(hours=1)
+                now = local_time.strftime('%Y, %H:%M:%S')
                 
                 # استخراج الأبعاد (Width و Height) مباشرة من استجابة API
                 res_w = data.get('width', 1080)

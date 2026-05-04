@@ -41,10 +41,10 @@ def get_flag_emoji(country_code):
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     welcome_message = (
-        "👋 <b>Welcome to the TikTok Analytics & Downloader Bot!</b>\n\n"
-        "Send me any TikTok link, and I will instantly analyze its statistics, "
-        "video quality, and provide direct high-quality download options.\n\n"
-        "🚀 <i>Let's get started!</i>"
+        "👋 <b>مرحباً بك في بوت تحليل وتحميل فيديوهات تيك توك!</b>\n\n"
+        "أرسل لي أي رابط فيديو من تيك توك، وسأقوم بتحليل الإحصائيات وجودة الفيديو فوراً، "
+        "مع توفير خيارات لتحميل الفيديو أو الصوت بجودة عالية.\n\n"
+        "🚀 <i>أرسل الرابط الآن لنبدأ!</i>"
     )
     bot.reply_to(message, welcome_message, parse_mode="HTML")
 
@@ -52,7 +52,7 @@ def send_welcome(message):
 def handle_tiktok(message):
     user_text = message.text
     if 'tiktok.com' in user_text:
-        wait_msg = bot.reply_to(message, "⏳ Analyzing...")
+        wait_msg = bot.reply_to(message, "⏳ جارٍ تحليل البيانات...")
         
         try:
             api_url = f"https://www.tikwm.com/api/?url={user_text}"

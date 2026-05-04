@@ -117,7 +117,7 @@ def handle_tiktok(message):
                 else:
                     tags_text = "#TikTok"
 
-                # بناء الرسالة باللغة الإنجليزية مع رابط لصاحب الحساب
+                # بناء الرسالة
                 stats_message = (
                     f"🎬 <b>VIDEO • ANALYTICS</b>\n"
                     f"• {now}\n\n"
@@ -148,7 +148,7 @@ def handle_tiktok(message):
                     f"VQ Score | 0</blockquote>\n\n"
                     f"📝 <b>Tags</b>\n"
                     f"<blockquote>{tags_text}</blockquote>\n\n"
-                    f'⚡ <b>Created by <a href="https://t.me/lexo_20">𝐋𝐞_𝐱𝐨</a></b>'
+                    f'⚡ <b>Created by <a href="https://t.me/lexo_20">@lexo_20</a></b>'
                 )
                 
                 # إضافة أزرار التحميل

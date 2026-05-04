@@ -138,14 +138,21 @@ def get_flag_emoji(country_code):
     return "".join(chr(ord(c.upper()) + 127397) for c in country_code)
 
 def get_original_track_name(music_title, music_author, video_title):
-    # تحديد الاستعلام الأساسي بناءً على إذا كان الصوت الأصلي لتيك توك
-    if "Original Sound" in music_title or "الصوت الأصلي" in music_title:
-        query = video_title
+    music_title_lower = music_title.lower()
+    # التحقق مما إذا كان الصوت مجرد "صوت أصلي"
+    if "original sound" in music_title_lower or "الصوت الأصلي" in music_title_lower:
+        # استخراج أول سطر من عنوان الفيديو
+        query = video_title.split('\n')[0].strip()
+        # إزالة الهاشتاجات
+        query = " ".join([word for word in query.split() if not word.startswith('#')])
     else:
         query = f"{music_title} - {music_author}"
         
     # إزالة الكلمات الزائدة
-    unwanted_words = ["speed up", "sped up", "remix", "slowed", "slowed + reverb", "bass boosted", "original sound", "الصوت الأصلي"]
+    unwanted_words = [
+        "speed up", "sped up", "remix", "slowed", "slowed + reverb", 
+        "bass boosted", "original sound", "الصوت الأصلي", "|", "🖤", "✨", "🔥"
+    ]
     for word in unwanted_words:
         query = query.replace(word, "").strip()
         
@@ -156,9 +163,10 @@ def get_original_track_name(music_title, music_author, video_title):
         
         if response.get('resultCount', 0) > 0:
             result = response['results'][0]
-            track_name = result.get('trackName', music_title)
-            artist_name = result.get('artistName', music_author)
-            return f"{track_name} - {artist_name}"
+            track_name = result.get('trackName', '')
+            artist_name = result.get('artistName', '')
+            if track_name and artist_name:
+                return f"{track_name} - {artist_name}"
     except Exception as e:
         pass 
         

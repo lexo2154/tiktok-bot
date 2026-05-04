@@ -40,7 +40,13 @@ def get_flag_emoji(country_code):
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Hello! Send a TikTok link and I will provide a professional HTML-formatted analysis 🚀")
+    welcome_message = (
+        "👋 <b>Welcome to the TikTok Analytics & Downloader Bot!</b>\n\n"
+        "Send me any TikTok link, and I will instantly analyze its statistics, "
+        "video quality, and provide direct high-quality download options.\n\n"
+        "🚀 <i>Let's get started!</i>"
+    )
+    bot.reply_to(message, welcome_message, parse_mode="HTML")
 
 @bot.message_handler(func=lambda message: True)
 def handle_tiktok(message):
@@ -82,8 +88,7 @@ def handle_tiktok(message):
                 country_name = get_country_full_name(region_code)
                 flag = get_flag_emoji(region_code)
                 
-                # تعديل الوقت ليطابق التوقيت المحلي (مثلاً إضافة ساعة واحدة لتوقيت UTC+1)
-                # ملاحظة: يمكنك تغيير hours إلى القيمة التي تتناسب مع منطقتك الزمنية
+                # تعديل الوقت ليطابق التوقيت المحلي (إضافة ساعة لتوقيت UTC+1)
                 local_time = datetime.datetime.now() + datetime.timedelta(hours=1)
                 now = local_time.strftime('%Y, %H:%M:%S')
                 
@@ -143,7 +148,7 @@ def handle_tiktok(message):
                     f"VQ Score | 0</blockquote>\n\n"
                     f"📝 <b>Tags</b>\n"
                     f"<blockquote>{tags_text}</blockquote>\n\n"
-                    f"⚡ <b>re:TikTok Checker & Downloader</b>"
+                    f'⚡ <b>Created by <a href="https://t.me/le_xo0">𝐋𝐞_𝐱𝐨</a></b>'
                 )
                 
                 # إضافة أزرار التحميل

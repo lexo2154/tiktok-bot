@@ -68,6 +68,15 @@ def handle_tiktok(message):
                 
                 # استخراج المعلومات الأساسية
                 author_name = data.get('author', {}).get('nickname', 'Unknown Author')
+                author_unique_id = data.get('author', {}).get('unique_id', 'unknown')
+                
+                # استخراج وقت النشر بالضبط
+                create_time = data.get('create_time', 0)
+                if create_time:
+                    publish_date = datetime.datetime.fromtimestamp(create_time).strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    publish_date = "Unknown"
+                
                 title = data.get('title', 'No Title Provided')
                 region_code = data.get('region', 'UN')
                 country_name = get_country_full_name(region_code)
@@ -104,7 +113,8 @@ def handle_tiktok(message):
                     f"🎬 <b>VIDEO • ANALYTICS</b>\n"
                     f"• {now}\n\n"
                     f"💬 <code>{title[:60]}...</code>\n"
-                    f"👤 Author: <b>{author_name}</b>\n"
+                    f"👤 Author: <b>{author_name} (@{author_unique_id})</b>\n"
+                    f"📅 Published: <b>{publish_date}</b>\n"
                     f"🎵 <b>Sound</b> • {data.get('duration', 0)}s\n\n"
                     f"📊 <b>Statistics</b>\n"
                     f"• 👁️ {data.get('play_count', 0)} Views\n"

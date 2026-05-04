@@ -8,6 +8,7 @@ import threading
 from flask import Flask
 import urllib.parse
 
+# جلب التوكن من متغيرات البيئة Environment Variables
 TOKEN = os.environ.get('BOT_TOKEN')
 
 if not TOKEN:
@@ -15,9 +16,11 @@ if not TOKEN:
 
 bot = telebot.TeleBot(TOKEN.strip())
 
+# قاموس لتخزين لغة كل مستخدم (افتراضياً الإنجليزية)
 user_languages = {}
 
-app = Flask(name)
+# إعداد خادم ويب مجاني لإبقاء السيرفر نشطاً على Render
+app = Flask(name)  # ✅ FIXED HERE
 
 @app.route('/')
 def home():
@@ -31,10 +34,11 @@ COUNTRY_NAMES = {
     'SY': 'Syria', 'LB': 'Lebanon', 'PS': 'Palestine', 'YE': 'Yemen'
 }
 
+# النصوص المخصصة لكل لغة
 LANGUAGES = {
     'en': {
-        'welcome': "👋 <b>Welcome!</b>",
-        'analyzing': "⏳ Analyzing data...",
+        'welcome': "👋 Welcome",
+        'analyzing': "⏳ Analyzing...",
         'invalid': "⚠️ Invalid link",
         'error': "❌ Error",
         'lang_changed': "✅ Language changed",
@@ -43,8 +47,8 @@ LANGUAGES = {
         'download_audio': "🎵 Downloading audio...",
         'sending': "⏳ Sending...",
         'error_download': "❌ Download error",
-        'btn_video': "🎥 Video HD",
-        'btn_audio': "🎵 Audio MP3",
+        'btn_video': "🎥 Video",
+        'btn_audio': "🎵 Audio",
         'author': "Author",
         'published': "Published",
         'statistics': "Statistics",
@@ -56,7 +60,7 @@ LANGUAGES = {
         'shadow_ban': "Shadow ban",
     },
     'ar': {
-        'welcome': "👋 <b>مرحبا!</b>",
+        'welcome': "👋 مرحبا",
         'analyzing': "⏳ جاري التحليل...",
         'invalid': "⚠️ رابط غير صالح",
         'error': "❌ خطأ",
@@ -66,8 +70,8 @@ LANGUAGES = {
         'download_audio': "🎵 جاري تحميل الصوت...",
         'sending': "⏳ إرسال...",
         'error_download': "❌ خطأ في التحميل",
-        'btn_video': "🎥 فيديو HD",
-        'btn_audio': "🎵 صوت MP3",
+        'btn_video': "🎥 فيديو",
+        'btn_audio': "🎵 صوت",
         'author': "الناشر",
         'published': "تاريخ النشر",
         'statistics': "الإحصائيات",
@@ -84,17 +88,9 @@ def t(chat_id, key):
     lang = user_languages.get(chat_id, 'en')
     return LANGUAGES[lang].get(key, LANGUAGES['en'][key])
 
-def get_country_full_name(code):
-    return COUNTRY_NAMES.get(code.upper(), code)
-
-def get_flag_emoji(country_code):
-    if not country_code or len(country_code) != 2:
-        return "📍"
-    return "".join(chr(ord(c.upper()) + 127397) for c in country_code)
-
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.reply_to(message, t(message.chat.id, 'welcome'), parse_mode="HTML")
+    bot.reply_to(message, t(message.chat.id, 'welcome'))
 
 @bot.message_handler(func=lambda m: True)
 def handle(message):
@@ -111,47 +107,50 @@ def handle(message):
         res = requests.get(api_url, timeout=15).json()
 
         if res.get("code") != 0:
-            return bot.edit_message_text(t(chat_id,'invalid'), chat_id, wait.message_id)
+            return bot.edit_message_text(
+                t(chat_id, 'invalid'),
+                chat_id,
+                wait.message_id
+            )
 
         data = res["data"]
 
-        # 🔥 SOUND FIX (IMPROVED)
-        music = data.get("music_info", {}) or {}
-
-        sound_title = music.get("title")
-        sound_author = music.get("author")
-
-        # fallback system (important)
-        if not sound_title:
-            sound_title = data.get("music", "Original Sound")
-
-        if not sound_author:
-            sound_author = "TikTok Audio"
+        music = data.get("music_info", {})
+        sound_title = music.get("title", "Original Sound")
+        sound_author = music.get("author", "Unknown")
 
         query = urllib.parse.quote(f"{sound_title} {sound_author}")
-
         youtube = f"https://www.youtube.com/results?search_query={query}"
         spotify = f"https://open.spotify.com/search/{query}"
 
         stats = (
-            f"🎵 <b>Sound Info</b>\n"
-            f"• {sound_title} - {sound_author}\n\n"
-            f"▶️ <a href='{youtube}'>YouTube</a> | "
-            f"🟢 <a href='{spotify}'>Spotify</a>"
+            f"🎵 Sound: {sound_title} - {sound_author}\n"
+            f"▶️ YouTube | 🟢 Spotify"
         )
 
         markup = InlineKeyboardMarkup()
         markup.row(
-            InlineKeyboardButton(t(chat_id,'btn_video'), callback_data=f"vid_{data['id']}"),
-            InlineKeyboardButton(t(chat_id,'btn_audio'), callback_data=f"mp3_{data['id']}")
+            InlineKeyboardButton("🎥 Video", callback_data=f"vid_{data['id']}"),
+            InlineKeyboardButton("🎵 Audio", callback_data=f"mp3_{data['id']}")
         )
 
-        bot.edit_message_text(stats, chat_id, wait.message_id,
-                              parse_mode="HTML", reply_markup=markup)
+        bot.edit_message_text(
+            stats,
+            chat_id,
+            wait.message_id,
+            reply_markup=markup
+        )
 
     except Exception as e:
         print(e)
-        bot.edit_message_text(t(chat_id,'error'), chat_id, wait.message_id)
+        bot.edit_message_text(t(chat_id, 'error'), chat_id, wait.message_id)
 
 
-bot.polling()
+def run_bot():
+    bot.polling(none_stop=True)
+
+if name == 'main':
+    threading.Thread(target=run_bot).start()
+
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)

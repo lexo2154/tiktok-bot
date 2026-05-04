@@ -53,7 +53,7 @@ def send_welcome(message):
 def handle_tiktok(message):
     user_text = message.text
     if 'tiktok.com' in user_text:
-        wait_msg = bot.reply_to(message, "⏳ جارٍ تحليل البيانات...")
+        wait_msg = bot.reply_to(message, "⏳ Analyzing data...")
         
         try:
             api_url = f"https://www.tikwm.com/api/?url={user_text}"

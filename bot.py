@@ -6,6 +6,7 @@ import datetime
 import os
 import threading
 from flask import Flask
+import urllib.parse
 
 # جلب التوكن من متغيرات البيئة Environment Variables
 TOKEN = os.environ.get('BOT_TOKEN')
@@ -117,14 +118,23 @@ def handle_tiktok(message):
                 else:
                     tags_text = "#TikTok"
 
-                # بناء الرسالة
+                # استخراج بيانات الأغنية والموسيقى
+                music_info = data.get('music_info', {})
+                music_title = music_info.get('title', 'Original Sound')
+                music_author = music_info.get('author', 'Unknown Artist')
+                
+                # تكوين رابط البحث عن الأغنية
+                encoded_query = urllib.parse.quote(f"{music_title} {music_author}")
+                music_link = f"https://www.youtube.com/results?search_query={encoded_query}"
+
+                # بناء الرسالة مع الرابط التفاعلي للأغنية
                 stats_message = (
                     f"🎬 <b>VIDEO • ANALYTICS</b>\n"
                     f"• {now}\n\n"
                     f"💬 <code>{title[:60]}...</code>\n"
                     f'👤 Author: <a href="https://www.tiktok.com/@{author_unique_id}">{author_name} (@{author_unique_id})</a>\n'
                     f"📅 Published: <b>{publish_date}</b>\n"
-                    f"🎵 <b>Sound</b> • {data.get('duration', 0)}s\n\n"
+                    f'🎵 <a href="{music_link}"><b>{music_title} - {music_author}</b></a> • {data.get("duration", 0)}s\n\n'
                     f"📊 <b>Statistics</b>\n"
                     f"• 👁️ {data.get('play_count', 0)} Views\n"
                     f"• ❤️ {data.get('digg_count', 0)} Likes\n"
@@ -148,7 +158,7 @@ def handle_tiktok(message):
                     f"VQ Score | 0</blockquote>\n\n"
                     f"📝 <b>Tags</b>\n"
                     f"<blockquote>{tags_text}</blockquote>\n\n"
-                    f'⚡ <b>Created by <a href="https://t.me/lexo_20">@lexo_20</a></b>'
+                    f'⚡ <b>Created by <a href="https://t.me/lexo_20">𝐋𝐞_𝐱𝐨</a></b>'
                 )
                 
                 # إضافة أزرار التحميل

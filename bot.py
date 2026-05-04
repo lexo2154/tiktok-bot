@@ -123,9 +123,10 @@ def handle_tiktok(message):
                 music_title = music_info.get('title', 'Original Sound')
                 music_author = music_info.get('author', 'Unknown Artist')
                 
-                # تكوين رابط البحث عن الأغنية
+                # تكوين روابط البحث عن الأغنية
                 encoded_query = urllib.parse.quote(f"{music_title} {music_author}")
-                music_link = f"https://www.youtube.com/results?search_query={encoded_query}"
+                youtube_link = f"https://www.youtube.com/results?search_query={encoded_query}"
+                spotify_link = f"https://open.spotify.com/search/{encoded_query}"
 
                 # بناء الرسالة مع الرابط التفاعلي للأغنية
                 stats_message = (
@@ -134,7 +135,8 @@ def handle_tiktok(message):
                     f"💬 <code>{title[:60]}...</code>\n"
                     f'👤 Author: <a href="https://www.tiktok.com/@{author_unique_id}">{author_name} (@{author_unique_id})</a>\n'
                     f"📅 Published: <b>{publish_date}</b>\n"
-                    f'🎵 <a href="{music_link}"><b>{music_title} - {music_author}</b></a> • {data.get("duration", 0)}s\n\n'
+                    f'🎵 <b>{music_title} - {music_author}</b> • {data.get("duration", 0)}s\n'
+                    f'   <a href="{youtube_link}">▶️ YouTube</a> | <a href="{spotify_link}">🟢 Spotify</a>\n\n'
                     f"📊 <b>Statistics</b>\n"
                     f"• 👁️ {data.get('play_count', 0)} Views\n"
                     f"• ❤️ {data.get('digg_count', 0)} Likes\n"

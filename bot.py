@@ -138,12 +138,10 @@ def get_flag_emoji(country_code):
     return "".join(chr(ord(c.upper()) + 127397) for c in country_code)
 
 def get_original_track_name(music_title, music_author, video_title):
-    # 1. التنظيف الأساسي
     m_title = str(music_title).strip()
     m_author = str(music_author).strip()
     v_title = str(video_title).strip()
 
-    # 2. التحقق من الكلمات الدلالية للصوت المخصص (التي تسبب المشاكل)
     custom_keywords = [
         "original sound", "الصوت الأصلي", "son original", "sonido original", 
         "suono originale", "som original", "originalton", "موسيقى أصلية"
@@ -151,15 +149,12 @@ def get_original_track_name(music_title, music_author, video_title):
     
     is_custom_sound = False
     
-    # فلترة صارمة: إذا كان العنوان فارغاً، أو يحتوي على كلمات مخصصة، أو يبدأ بشرطة، أو يطابق اسم الناشر
     if not m_title or any(kw in m_title.lower() for kw in custom_keywords):
         is_custom_sound = True
     elif m_title.startswith('-') or m_title.lower() == m_author.lower() or len(m_title) < 2:
         is_custom_sound = True
 
-    # 3. بناء نص البحث بناءً على نوع الصوت
     if is_custom_sound:
-        # محاولة استخراج اسم الأغنية من عنوان الفيديو وتجاهل الهاشتاجات
         clean_v_title = v_title.split('\n')[0] 
         clean_v_title = " ".join([word for word in clean_v_title.split() if not word.startswith('#')]).strip()
         
@@ -173,17 +168,14 @@ def get_original_track_name(music_title, music_author, video_title):
         search_query = f"{m_title} {m_author}".strip()
         fallback_display = f"{m_title} - {m_author}".strip()
 
-    # 4. إذا لم نجد أي نص للبحث
     if not search_query:
         return "Original Sound"
 
-    # 5. تنظيف الاستعلام من الكلمات التي قد تمنع نتائج iTunes
     unwanted_words = ["speed up", "sped up", "remix", "slowed", "bass boosted", "reverb"]
     clean_search_query = search_query.lower()
     for w in unwanted_words:
         clean_search_query = clean_search_query.replace(w, "").strip()
 
-    # 6. محاولة البحث في قاعدة بيانات أبل
     try:
         url = f"https://itunes.apple.com/search?term={urllib.parse.quote(clean_search_query)}&limit=1&media=music"
         response = requests.get(url, timeout=5).json()
@@ -197,11 +189,9 @@ def get_original_track_name(music_title, music_author, video_title):
     except Exception:
         pass 
         
-    # 7. التنسيق النهائي (حائط الصد الأخير لتنظيف الأسماء المزعجة)
     if fallback_display.startswith('-'):
         fallback_display = fallback_display.lstrip('- ').strip()
         
-    # إذا كانت النتيجة لا تزال تحتوي على أسماء حسابات مع شرطة، نقوم بإخفائها
     if " - " in fallback_display and is_custom_sound:
          return "Original Sound"
          
@@ -279,21 +269,6 @@ def handle_tiktok(message):
                 local_time = datetime.datetime.now() + datetime.timedelta(hours=1)
                 now = local_time.strftime('%Y, %H:%M:%S')
                 
-                res_w = data.get('width', 1080)
-                res_h = data.get('height', 1920)
-                
-                size_bytes = data.get('size', 0) or 0
-                size_mb = size_bytes / (1024 * 1024)
-                duration = data.get('duration', 1) or 1
-                bitrate = size_mb / duration if duration > 0 else 0
-                
-                if bitrate > 0.3:
-                    fps = 60
-                else:
-                    fps = 30
-                    
-                quality_res = f"{res_h}p{fps}"
-
                 hashtags = [word for word in title.split() if word.startswith('#')]
                 if hashtags:
                     tags_text = " ".join(hashtags)
@@ -304,12 +279,28 @@ def handle_tiktok(message):
                 music_title = music_info.get('title', '')
                 music_author = music_info.get('author', '')
                 
-                # استخدام الدالة الدقيقة لمعالجة الأغنية
                 official_query = get_original_track_name(music_title, music_author, title)
-                
                 encoded_query = urllib.parse.quote(official_query)
                 youtube_link = f"https://www.youtube.com/results?search_query={encoded_query}"
                 spotify_link = f"https://open.spotify.com/search/{encoded_query}"
+
+                # ---------- حسابات الجودة الدقيقة الجديدة ----------
+                duration = data.get('duration') or 1
+                res_w = data.get('width') or 1080
+                res_h = data.get('height') or 1920
+                
+                # جودة عالية (HD) - تمثل play_addr
+                hd_size_bytes = data.get('hd_size') or data.get('size') or 0
+                hd_mb = hd_size_bytes / (1024 * 1024)
+                hd_mbps = (hd_mb * 8) / duration if duration > 0 else 0
+                fps_hd = 60 if hd_mbps > 2.0 else 30
+                
+                # جودة عادية (Normal) - تمثل adapt_lower
+                normal_size_bytes = data.get('size') or 0
+                normal_mb = normal_size_bytes / (1024 * 1024)
+                normal_mbps = (normal_mb * 8) / duration if duration > 0 else 0
+                fps_normal = 30
+                # ----------------------------------------------------
 
                 stats_message = (
                     f"🎬 <b>VIDEO • ANALYTICS</b>\n"
@@ -332,17 +323,17 @@ def handle_tiktok(message):
                     f"• {flag} {t(chat_id, 'region')} | {country_name}\n"
                     f"• 👻 {t(chat_id, 'shadow_ban')} | <b>{shadow_status}</b>\n\n"
                     f"⭐ <b>{t(chat_id, 'quality')}</b>\n"
-                    f"• 🌐 Browser | {res_w}x{res_h}\n"
-                    f"• 📱 Phone | {res_w}x{res_h}\n"
-                    f"<blockquote>🌐 📱 play_addr 🌐 📱\n"
-                    f"original_{res_w}_{res_h}\n"
-                    f"{quality_res} • {bitrate:.1f} MBps •\n"
-                    f"h264 • {size_mb:.1f} MB\n\n"
+                    f"• 🌐 Browser | {res_h}p{fps_hd}\n"
+                    f"• 📱 Phone | {res_h}p{fps_normal}\n"
+                    f"<blockquote>🌐 📱 play_addr 🌐 normal_{res_h}_0 📱 play_addr_h264\n"
+                    f"{res_h}p{fps_hd} • {hd_mbps:.1f} Mbps • h264 • {hd_mb:.1f} MB\n\n"
+                    f"🌐 📱 adapt_lower_{res_h}_1\n"
+                    f"{res_h}p{fps_normal} • {normal_mbps:.1f} Mbps • hevc • {normal_mb:.1f} MB\n\n"
                     f"Original | {res_w}x{res_h}\n"
-                    f"VQ Score | 0</blockquote>\n\n"
+                    f"VQ Score | N/A</blockquote>\n\n"
                     f"📝 <b>{t(chat_id, 'tags')}</b>\n"
                     f"<blockquote>{tags_text}</blockquote>\n\n"
-                    f'⚡ <b>Created by 𝐋𝐞_𝐱𝐨 (@lexo_20)</b>'
+                    f'⚡ <b>Created by <a href="https://t.me/lexo_20">𝐋𝐞_𝐱𝐨</a></b>'
                 )
                 
                 markup = InlineKeyboardMarkup()

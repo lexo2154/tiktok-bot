@@ -148,7 +148,7 @@ def handle_tiktok(message):
                     f"VQ Score | 0</blockquote>\n\n"
                     f"📝 <b>Tags</b>\n"
                     f"<blockquote>{tags_text}</blockquote>\n\n"
-                    f'⚡ <b>Created by <a href="https://t.me/le_xo0">𝐋𝐞_𝐱𝐨</a></b>'
+                    f'⚡ <b>Created by <a href="https://t.me/lexo_20">𝐋𝐞_𝐱𝐨</a></b>'
                 )
                 
                 # إضافة أزرار التحميل
